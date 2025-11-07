@@ -3,6 +3,8 @@
 
 “We’re not replacing teachers — we’re amplifying their impact.”
 
+https://www.canva.com/design/DAG2i1Blzsg/gx2wOL-PFRf6XTsdHB9T_A/edit?utm_content=DAG2i1Blzsg&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+
 # 📘 Overview
 
 ##SMART Exam is an AI-powered assessment system designed to transform traditional exams into cognitive learning experiences.
