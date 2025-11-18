@@ -7,8 +7,27 @@ https://www.canva.com/design/DAG2i1Blzsg/gx2wOL-PFRf6XTsdHB9T_A/edit?utm_content
 
 # 📘 Overview
 
-##SMART Exam is an AI-powered assessment system designed to transform traditional exams into cognitive learning experiences.
-By leveraging Bloom’s Taxonomy, Retrieval-Augmented Generation (RAG), and a multi-agent architecture, SMART Exam automatically generates intelligent, well-balanced exams that assess not only what students know, but also how they think, analyze, and create.
+"""
+PROJECT OVERVIEW:
+=================
+SMART Exam generates personalized, Bloom's Taxonomy-aligned exam questions
+from course materials using a multi-agent AI system.
+
+WORKFLOW:
+1. Teacher uploads course materials (PDFs, slides, notes)
+2. RAG Layer: Extracts and indexes key topics with semantic search
+3. Multi-Agent System: Generates questions at different Bloom's levels
+4. Validator Agent: Ensures quality, clarity, and accuracy
+5. Exam Assembler: Compiles questions into final exam
+6. Streamlit Portal: Delivers exam with analytics
+
+TECHNOLOGY STACK:
+- Streamlit: UI/UX
+- LangChain + FAISS: RAG implementation
+- LLaMA 3.2 / GPT-5: Question generation
+- FastAPI + Celery: Background task coordination
+- MongoDB/PostgreSQL: Data persistence
+"""
 
 # 🚀 Key Features
 
