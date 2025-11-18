@@ -1,0 +1,1 @@
+#Valide chaque question générée : score 0-100 (clarté, pertinence, exactitude Bloom, etc.). Seuil ≥ 85% pour passer à l'Exam Assembler.

@@ -1,0 +1,1 @@
+#Pipeline RAG complet : chargement documents → chunking → embedding → sauvegarde dans data/vector_store/. Lance le traitement après upload.

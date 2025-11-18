@@ -1,0 +1,1 @@
+#Logique détaillée de scoring (heuristiques verbes + prompt zero-shot LLM). Utilisé par validator_agent.py.

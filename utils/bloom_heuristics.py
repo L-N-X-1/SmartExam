@@ -1,0 +1,1 @@
+#Fonctions utilitaires : detect_bloom_from_verb(), check_consistency(question, claimed_level), etc.

@@ -1,0 +1,1 @@
+#Façade : lance le Coordinator → récupère toutes les questions → passe au Validator → retourne seulement les questions validées.

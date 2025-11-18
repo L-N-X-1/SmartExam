@@ -1,0 +1,1 @@
+#Wrapper unique pour appeler les LLM (OpenAI, Anthropic, Grok, Llama). Fonctions : get_completion() et get_embedding(). Centralise toutes les appels API.
