@@ -13,3 +13,6 @@ openai
 anthropic 
 streamlit-authenticator 
  
+python-dotenv
+streamlit
+streamlit-option-menu
