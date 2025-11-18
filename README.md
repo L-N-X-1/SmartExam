@@ -59,5 +59,8 @@ Projet de fin d'année : **Générateur intelligent d'examens basé sur la Taxon
 3. Présentation finale : démo complète (upload → config → génération → PDF)
 
 **Que le meilleur examen gagne !** 🚀
+**Architecture choisie** : Streamlit full-Python  
+**Raison** : Vitesse de développement ×10, équipe Python-only, deadline courte, maintenance simple.  
+On privilégie l’intelligence de l’IA plutôt que l’architecture micro-services.
 
 — Jouini Chahd, novembre 2025
