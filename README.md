@@ -6,7 +6,28 @@ Projet de generation intelligente d'examens basse sur la taxonomie de Bloom et R
 Projet de fin d'année : **Générateur intelligent d'examens basé sur la Taxonomie de Bloom + Multi-Agent + RAG**
 
 > Objectif : Créer une application Streamlit complète qui permet à un enseignant d'uploader ses cours (PDF, etc.) → génère automatiquement un examen équilibré sur les 6 niveaux de Bloom → export PDF + analytics.
+Salut l’équipe SMART EXAM 🧠
 
+Le repo est enfin propre → https://github.com/chahedjouini/SmartExam (branche main)
+
+Étapes OBLIGATOIRES pour tout le monde :
+1. git clone https://github.com/chahedjouini/SmartExam.git
+2. cd SmartExam
+3. python -m venv venv && venv\Scripts\activate
+4. pip install -r requirements.txt
+5. cp .env.example .env → mettez votre clé OpenAI
+6. streamlit run app.py → ça doit marcher direct !
+
+J’ai mis des commentaires détaillés dans chaque fichier pour que vous sachiez exactement quoi coder.
+
+Cette semaine on vise :
+- Upload PDF qui marche
+- 6 agents qui génèrent des questions (même simples)
+- Interface avec les 5 pages
+
+On se fait un point Zoom mercredi soir 20h ?
+
+Qui veut quel groupe ? Dites-moi vite !
 ### Répartition conseillée (6-8 étudiants) :
 - Groupe 1 → Upload + RAG (2 personnes)  
 - Groupe 2 → Agents Bloom (3 personnes)  
