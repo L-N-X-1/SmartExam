@@ -1,0 +1,1 @@
+#Classe abstraite que tous les agents Bloom héritent. Méthode obligatoire : generate_questions(context, num_questions, topic=None).

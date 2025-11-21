@@ -1,0 +1,1 @@
+#Extraction texte depuis PDF (PyPDF2) et DOCX (python-docx). Fonctions : extract_text_from_pdf(), extract_text_from_docx().

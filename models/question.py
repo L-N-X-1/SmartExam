@@ -1,0 +1,1 @@
+#Modèle Pydantic Question : text, bloom_level (1-6), difficulty, type, marks, topic, validation_score, etc.

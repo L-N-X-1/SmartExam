@@ -1,0 +1,1 @@
+#Gestion du vector store (FAISS ou Chroma). Fonctions : create_index(), add_documents(), retrieve(query, k=5).
