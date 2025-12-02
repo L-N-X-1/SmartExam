@@ -22,8 +22,9 @@ with st.sidebar:
         icons=['cloud-upload', 'sliders', 'robot', 'eye', 'bar-chart'],
         menu_icon="brain", default_index=0
     )
-
-if selected == "Upload Documents":
+if st.session_state.provider == 'grok':
+    st.sidebar.text_input("Grok API Key", type="password", key="grok_api_key")
+elif selected == "Upload Documents":
     st.title("📚 Upload des supports de cours")
     st.write("Glissez-déposez vos PDF, slides, notes...")
     # uploaded_files = st.file_uploader(...)
