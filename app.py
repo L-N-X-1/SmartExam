@@ -35,3 +35,10 @@ elif selected == "Configurer Examen":
 else:
     st.title(f"🚧 {selected} – En cours de développement")
     st.write("Cette page sera codée par ton groupe !")
+
+
+    // Importer la fonction retrieve pour tester le RAG
+    # Dans app.py, ajoute temporairement pour tester
+if st.button("Test RAG : trouve-moi du contenu sur CNN"):
+    context = "\n\n".join(retrieve("réseaux de neurones convolutifs", k=5))
+    st.write(context)

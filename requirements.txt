@@ -1,18 +1,39 @@
-streamlit==1.38.0 
-langchain==0.3.0 
-langchain-openai 
-langchain-community 
-faiss-cpu 
-pypdf 
-python-docx 
-sentence-transformers 
-python-dotenv 
-plotly 
-pandas 
-openai 
-anthropic 
-streamlit-authenticator 
- 
-python-dotenv
-streamlit
+# UI & App (Streamlit for multi-page)
+streamlit==1.38.0
 streamlit-option-menu
+streamlit-authenticator
+
+# Data & Analytics (for Bloom charts, exam data)
+pandas
+plotly
+numpy
+langdetect
+
+# Document Extraction (from repo + code: multi-format)
+pypdf2
+python-docx
+beautifulsoup4
+requests
+Pillow
+easyocr
+unstructured[all-docs]  # Advanced PDF (tables/images)
+
+# RAG Core (merged: embeddings, vector store, Dictionary boosts)
+sentence-transformers  # Open-source embeddings (BGE)
+faiss-cpu
+rank-bm25  # Sparse for hybrid (B-BM25)
+flashrank  # Reranking (D-Dense efficiency)
+
+# LLM & Agents (open-source + Grok option)
+langchain==0.3.0  # For Bloom agents/chains
+langchain-community
+langchain-text-splitters
+transformers  # HF models (Llama fallback)
+torch
+huggingface-hub
+ollama  # Local LLM (optional fallback)
+grok  # xAI Grok SDK (for Grok key; pip install grok)
+# groq  # Optional for Groq inference (keep if needed)
+
+# Optional (from repo; keep for expansion)
+# scikit-learn  # If needed for similarity
