@@ -1,18 +1,23 @@
-streamlit==1.38.0 
-langchain==0.3.0 
-langchain-openai 
-langchain-community 
-faiss-cpu 
-pypdf 
-python-docx 
-sentence-transformers 
-python-dotenv 
-plotly 
-pandas 
-openai 
-anthropic 
-streamlit-authenticator 
- 
-python-dotenv
-streamlit
+# --- Base Streamlit & UI ---
+streamlit==1.38.0
 streamlit-option-menu
+streamlit-authenticator
+plotly
+pandas
+python-dotenv
+
+# --- RAG & Traitement de Documents ---
+# RAG Core
+langchain==0.2.11              # (Conserver celle-ci pour l'instant)
+langchain-openai==0.1.3        # METTRE À JOUR VERS UNE VERSION COMPATIBLE (0.1.3 ou plus)
+langchain-community==0.0.32
+# Traitement de documents
+pypdf
+python-docx
+# Vecteur et Embeddings
+faiss-cpu
+sentence-transformers
+
+# --- Modèles (LLMs) ---
+openai
+anthropic
