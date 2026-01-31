@@ -1,6 +1,8 @@
 import re
 import json
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, List
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.runnables import RunnableLambda
 
 
 class ValidatorAgent:
@@ -10,11 +12,13 @@ class ValidatorAgent:
     - Bloom verb alignment
     - ambiguity detection
     - LLM scoring judge
+    
+    Now uses LangGraph directly without core/llm_interface
     """
 
     def __init__(
         self,
-        llm,
+        llm: Any,  # LangChain LLM or LangGraph compatible model
         threshold: int = 85,
         use_llm_judge: bool = True
     ):
@@ -30,9 +34,12 @@ class ValidatorAgent:
             "evaluate": ["justify","critique","defend","assess","evaluate"],
             "create": ["design","propose","create","develop","construct"]
         }
+        
+        # Create LangGraph node
+        self.node = RunnableLambda(self._process_state)
 
     # ---------------------------------
-    # Heuristic checks (fast)
+    # Heuristic checks (unchanged)
     # ---------------------------------
 
     def _clarity_score(self, q: str) -> int:
@@ -99,8 +106,46 @@ class ValidatorAgent:
         return 30
 
     # ---------------------------------
-    # LLM Judge
+    # LLM Judge with direct LangChain integration
     # ---------------------------------
+
+    def _call_llm(self, prompt: str) -> str:
+        """
+        Direct LLM call using LangChain invoke pattern.
+        """
+        try:
+            # Try LangChain invoke pattern first
+            if hasattr(self.llm, 'invoke'):
+                messages = [
+                    SystemMessage(content="You are an exam quality judge. Return only valid JSON."),
+                    HumanMessage(content=prompt)
+                ]
+                response = self.llm.invoke(messages)
+                
+                # Handle different response formats
+                if hasattr(response, 'content'):
+                    return response.content
+                elif isinstance(response, str):
+                    return response
+                else:
+                    return str(response)
+            
+            # Fallback to simple callable
+            elif callable(self.llm):
+                return self.llm(prompt, temperature=0)
+            
+            # Fallback to generate method (legacy)
+            elif hasattr(self.llm, 'generate'):
+                result = self.llm.generate(prompt=prompt, temperature=0)
+                if hasattr(result, 'text'):
+                    return result.text
+                return str(result)
+            
+            else:
+                raise RuntimeError(f"LLM object {type(self.llm)} is not callable and has no invoke/generate method")
+                
+        except Exception as e:
+            raise RuntimeError(f"LLM call failed: {str(e)}")
 
     def _llm_score(self, question: str, context: str, bloom_level: str) -> Dict[str, int]:
 
@@ -131,7 +176,7 @@ Return ONLY JSON:
 }}
 """
 
-        raw = self.llm.generate(prompt, temperature=0)
+        raw = self._call_llm(prompt)
 
         try:
             return json.loads(raw)
@@ -144,7 +189,7 @@ Return ONLY JSON:
             }
 
     # ---------------------------------
-    # Final public API
+    # Final public API (unchanged)
     # ---------------------------------
 
     def validate(
@@ -194,3 +239,84 @@ Return ONLY JSON:
         }
 
         return final_score >= self.threshold, meta
+
+    # ---------------------------------
+    # LangGraph Integration
+    # ---------------------------------
+
+    def _process_state(self, state: Dict) -> Dict:
+        """
+        Process LangGraph state for validation.
+        Expected input state:
+        {
+            "questions": [{"question": "...", "bloom_level": "..."}],
+            "context": "...",
+            "validation_threshold": int (optional)
+        }
+        
+        Output state adds:
+        {
+            "validated_questions": [...],
+            "validation_results": [...],
+            "validation_stats": {...}
+        }
+        """
+        questions = state.get("questions", [])
+        context = state.get("context", "")
+        threshold = state.get("validation_threshold", self.threshold)
+        
+        validated_questions = []
+        validation_results = []
+        stats = {"total": len(questions), "passed": 0, "failed": 0}
+        
+        for q in questions:
+            if isinstance(q, dict) and "question" in q:
+                question_text = q["question"]
+                bloom_level = q.get("bloom_level", "remember")
+                
+                is_valid, meta = self.validate(question_text, context, bloom_level)
+                
+                if is_valid:
+                    validated_questions.append({
+                        **q,
+                        "validation": meta
+                    })
+                    stats["passed"] += 1
+                else:
+                    stats["failed"] += 1
+                
+                validation_results.append({
+                    "question": question_text,
+                    "is_valid": is_valid,
+                    "meta": meta
+                })
+        
+        return {
+            **state,
+            "validated_questions": validated_questions,
+            "validation_results": validation_results,
+            "validation_stats": stats
+        }
+
+    def __call__(self, state: Dict) -> Dict:
+        """
+        Make validator LangGraph-native callable.
+        """
+        return self.node.invoke(state)
+
+    def validate_batch(
+        self,
+        questions: List[Dict],
+        context: str,
+        bloom_level: str
+    ) -> List[Dict]:
+        """
+        Validate a batch of questions (legacy compatibility).
+        """
+        state = {
+            "questions": questions,
+            "context": context
+        }
+        
+        result = self._process_state(state)
+        return result["validated_questions"]

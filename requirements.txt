@@ -28,6 +28,7 @@ flashrank  # Reranking (D-Dense efficiency)
 langchain==0.3.0  # For Bloom agents/chains
 langchain-community
 langchain-text-splitters
+langgraph>=0.2.0
 transformers  # HF models (Llama fallback)
 torch
 huggingface-hub
