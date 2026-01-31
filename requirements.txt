@@ -11,6 +11,7 @@ langdetect
 
 # Document Extraction (from repo + code: multi-format)
 PyPDF2>=3.0.0
+pypdf>=3.0.0
 python-docx
 beautifulsoup4
 requests
@@ -24,18 +25,11 @@ faiss-cpu>=1.7.4
 rank-bm25  # Sparse for hybrid (B-BM25)
 flashrank  # Reranking (D-Dense efficiency)
 
-# LLM & Agents (open-source + Grok option)
+# LLM & Agents (Groq API + LangGraph)
 langchain==0.3.0  # For Bloom agents/chains
 langchain-community
 langchain-text-splitters
-transformers  # HF models (Llama fallback)
-torch
-huggingface-hub
-ollama  # Local LLM (optional fallback)
-grok  # xAI Grok SDK (for Grok key; pip install grok)
-# groq  # Optional for Groq inference (keep if needed)
-
-# Optional (from repo; keep for expansion)
-# scikit-learn  # If needed for similarity
-openai>=1.0.0
+langgraph>=0.1.0  # LangGraph for multi-agent orchestration
+langchain-groq>=0.1.0  # Groq integration for LangChain
+groq>=0.4.0  # Groq API client (primary LLM)
 python-dotenv>=1.0.0

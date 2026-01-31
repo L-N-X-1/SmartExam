@@ -37,9 +37,26 @@ def create_index(chunks):
     """
     global index, chunks_store
     
+    # Validation des chunks
+    if not chunks or len(chunks) == 0:
+        raise ValueError("No chunks provided to create index")
+    
+    # Filter out empty chunks
+    chunks = [chunk for chunk in chunks if chunk and chunk.strip()]
+    if not chunks:
+        raise ValueError("All chunks are empty")
+    
     # Génération des embeddings
     embeddings = model.encode(chunks, batch_size=32, show_progress_bar=True)
     embeddings = np.array(embeddings).astype('float32')
+    
+    # Ensure embeddings is 2D
+    if len(embeddings.shape) == 1:
+        embeddings = embeddings.reshape(-1, 1)
+    
+    # Validation des embeddings
+    if embeddings.shape[0] == 0:
+        raise ValueError("No embeddings generated")
     
     # Création de l'index FAISS
     dimension = embeddings.shape[1]
