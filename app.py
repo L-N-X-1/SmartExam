@@ -14,7 +14,7 @@ from streamlit_option_menu import option_menu
 from openai import OpenAI  # Pour Grok (compatible API)
 import numpy as np  # Pour FAISS/retrieval
 # Assume tes imports pour RAG (ajoute si besoin)
-from core.rag_engine import retrieve, get_embedding, create_index, save_index, process_pdf_to_chunks
+from core.rag_engine import retrieve, create_index, process_pdf_to_chunks
 from PyPDF2 import PdfReader  # ✅ Majuscules
 
 st.set_page_config(page_title="SMART EXAM", layout="wide", page_icon="🧠")
@@ -66,6 +66,13 @@ if selected == "Upload Documents":
     st.write("Glissez-déposez vos PDF, slides, notes...")
     
     uploaded_file = st.file_uploader("Upload PDF for Test", type="pdf")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        chunk_size = st.number_input("Chunk Size", min_value=50, max_value=2000, value=220, step=10)
+    with col2:
+        chunk_overlap = st.number_input("Chunk Overlap", min_value=0, max_value=500, value=20, step=10)
+
     if st.button("Process and Index to FAISS"):
         if uploaded_file:
             with st.spinner("Processing PDF..."):
@@ -75,15 +82,12 @@ if selected == "Upload Documents":
                     text += page.extract_text() or ""
                 
                 # Chunk le texte correctement
-                chunks = process_pdf_to_chunks(text, chunk_size=800, chunk_overlap=150)
+                chunks = process_pdf_to_chunks(text, chunk_size,chunk_overlap)
                 st.write(f"✅ Created {len(chunks)} chunks")
                 
                 # Créer et sauvegarder l'index FAISS
                 create_index(chunks)
-                if save_index():
-                    st.success(f"✅ Successfully indexed {len(chunks)} chunks to FAISS!")
-                else:
-                    st.error("❌ Error saving index")
+                st.success(f"✅ Successfully indexed {len(chunks)} chunks to FAISS!")
 
     # Test RAG Retrieval
     st.header("🔍 Test RAG Retrieval")
@@ -93,12 +97,12 @@ if selected == "Upload Documents":
             with st.spinner("Searching..."):
                 chunks = retrieve(test_query, k=5)
                 
-                if chunks[0]['text'] == "No index found. Please upload and process documents first.":
+                if not chunks:
                     st.warning("⚠️ No documents indexed yet. Please upload and process a PDF first.")
                 else:
                     st.write("**Retrieved Chunks:**")
                     for i, chunk in enumerate(chunks):
-                        with st.expander(f"Chunk {i+1} (Distance: {chunk['score']:.4f})"):
+                        with st.expander(f"Chunk {i+1} (Relevance: {chunk['score']*100:.1f}%)"):
                             st.write(chunk['text'])
         else:
             st.warning("Please enter a query first.")
@@ -115,7 +119,7 @@ else:
     if st.button("Test RAG : trouve-moi du contenu sur CNN"):
         chunks = retrieve("réseaux de neurones convolutifs", k=5)
         
-        if chunks[0]['text'] == "No index found. Please upload and process documents first.":
+        if not chunks:
             st.warning("⚠️ Aucun document indexé. Allez dans 'Upload Documents' pour charger un PDF.")
         else:
             st.write("**Contexte trouvé:**")
