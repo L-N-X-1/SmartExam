@@ -402,3 +402,41 @@ class RAGEngine:
             })
 
         return wrapped
+
+
+# Global RAGEngine instance for module-level functions
+_rag_engine = None
+
+
+def _get_engine():
+    """Get or initialize the global RAGEngine instance"""
+    global _rag_engine
+    if _rag_engine is None:
+        _rag_engine = RAGEngine()
+    return _rag_engine
+
+
+# Module-level functions for backward compatibility with app.py
+def get_embedding(text):
+    """Module-level wrapper for get_embedding"""
+    return _get_engine().get_embedding(text)
+
+
+def create_index(chunks, append=False):
+    """Module-level wrapper for create_index"""
+    return _get_engine().create_index(chunks, append=append)
+
+
+def save_index():
+    """Module-level wrapper for save_index"""
+    return _get_engine().save_index()
+
+
+def retrieve(query, k=5, similarity_threshold=0.0):
+    """Module-level wrapper for retrieve"""
+    return _get_engine().retrieve(query, k=k, similarity_threshold=similarity_threshold)
+
+
+def process_pdf_to_chunks(text, chunk_size=800, chunk_overlap=150, source=None, page=None, title=None):
+    """Module-level wrapper for process_pdf_to_chunks"""
+    return _get_engine().process_pdf_to_chunks(text, chunk_size=chunk_size, chunk_overlap=chunk_overlap, source=source, page=page, title=title)
