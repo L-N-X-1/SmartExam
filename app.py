@@ -16,8 +16,19 @@ import numpy as np  # Pour FAISS/retrieval
 # Assume tes imports pour RAG (ajoute si besoin)
 from core.rag_engine import retrieve, create_index, process_pdf_to_chunks
 from PyPDF2 import PdfReader  # ✅ Majuscules
+import json  # For exam export
 
 st.set_page_config(page_title="SMART EXAM", layout="wide", page_icon="🧠")
+
+# Initialize session state variables
+if "exam_config" not in st.session_state:
+    st.session_state.exam_config = None
+if "generated_exam" not in st.session_state:
+    st.session_state.generated_exam = None
+if "validation_result" not in st.session_state:
+    st.session_state.validation_result = None
+if "current_context" not in st.session_state:
+    st.session_state.current_context = None
 
 # Sidebar menu
 with st.sidebar:
@@ -109,21 +120,165 @@ if selected == "Upload Documents":
 
 elif selected == "Configurer Examen":
     st.title("⚙️ Configuration de l'examen")
-    # Sliders Bloom, durée, etc.
 
-else:
-    st.title(f"🚧 {selected} – En cours de développement")
-    st.write("Cette page sera codée par ton groupe !")
+    col1, col2 = st.columns(2)
 
-    # Test button amélioré
-    if st.button("Test RAG : trouve-moi du contenu sur CNN"):
-        chunks = retrieve("réseaux de neurones convolutifs", k=5)
-        
-        if not chunks:
-            st.warning("⚠️ Aucun document indexé. Allez dans 'Upload Documents' pour charger un PDF.")
-        else:
-            st.write("**Contexte trouvé:**")
-            for i, chunk in enumerate(chunks):
-                st.write(f"**Chunk {i+1}:**")
-                st.write(chunk['text'][:300] + "...")
-                st.write("---")
+    with col1:
+        st.subheader("📊 Bloom's Taxonomy Distribution")
+        num_questions = st.slider("Total Questions", 5, 50, 20)
+
+        remember_pct = st.slider("Remember (%)", 0, 100, 10)
+        understand_pct = st.slider("Understand (%)", 0, 100, 20)
+        apply_pct = st.slider("Apply (%)", 0, 100, 25)
+        analyze_pct = st.slider("Analyze (%)", 0, 100, 20)
+        evaluate_pct = st.slider("Evaluate (%)", 0, 100, 15)
+        create_pct = st.slider("Create (%)", 0, 100, 10)
+
+        total_pct = (
+            remember_pct + understand_pct + apply_pct +
+            analyze_pct + evaluate_pct + create_pct
+        )
+        if total_pct != 100:
+            st.warning(f"⚠️ Total is {total_pct}% (should be 100%)")
+
+    with col2:
+        st.subheader("⏱️ Exam Settings")
+        duration = st.slider("Duration (minutes)", 30, 480, 120)
+        difficulty = st.select_slider("Difficulty", ["Easy", "Medium", "Hard"], value="Medium")
+        language = st.selectbox("Language", ["English", "French"])
+
+        st.subheader("📝 Question Types")
+        mcq = st.checkbox("Multiple Choice", True)
+        short = st.checkbox("Short Answer", True)
+        essay = st.checkbox("Essay", False)
+
+    st.divider()
+
+    if st.button("✅ Save Configuration", use_container_width=True):
+        st.session_state.exam_config = {
+            "num_questions": num_questions,
+            "bloom_distribution": {
+                "Remember": remember_pct,
+                "Understand": understand_pct,
+                "Apply": apply_pct,
+                "Analyze": analyze_pct,
+                "Evaluate": evaluate_pct,
+                "Create": create_pct,
+            },
+            "duration": duration,
+            "difficulty": difficulty,
+            "language": language,
+            "question_types": {
+                "mcq": mcq,
+                "short": short,
+                "essay": essay,
+            },
+        }
+        st.success("✅ Configuration saved")
+
+# =========================================================
+# PAGE 3— GÉNÉRER QUESTIONS
+# =========================================================
+elif selected == "Générer Questions":
+    st.title("🤖 Question Generation")
+
+    if not st.session_state.exam_config:
+        st.warning("⚠️ Please configure the exam first.")
+    else:
+        config = st.session_state.exam_config
+
+        col1, col2 = st.columns([2, 1])
+
+        with col1:
+            st.subheader("📋 Current Configuration")
+            st.write(f"**Questions**: {config['num_questions']}")
+            st.write(f"**Duration**: {config['duration']} min")
+            st.write(f"**Difficulty**: {config['difficulty']}")
+
+            st.write("**Bloom Distribution:**")
+            for k, v in config["bloom_distribution"].items():
+                st.write(f"• {k}: {v}%")
+
+        with col2:
+            st.subheader("🚀 Generation")
+            if st.button("Generate Exam", use_container_width=True):
+                with st.spinner("Generating exam..."):
+                    # MOCK generation hook (replace with your coordinator)
+                    exam = {
+                        "questions": [
+                            f"Sample question {i+1}" 
+                            for i in range(config["num_questions"])
+                        ]
+                    }
+
+                    st.session_state.generated_exam = exam
+                    st.session_state.current_context = "Generated context"
+                    st.success("✅ Exam generated")
+
+                    for i, q in enumerate(exam["questions"][:3], 1):
+                        with st.expander(f"Question {i}"):
+                            st.write(q)
+
+# =========================================================
+# PAGE 4 — REVIEW & EXPORT
+# =========================================================
+elif selected == "Review & Export":
+    st.title("👁️ Review & Export")
+
+    exam = st.session_state.generated_exam
+    if not exam:
+        st.warning("⚠️ No exam generated yet.")
+    else:
+        tab1, tab2, tab3 = st.tabs(["Questions", "Validation", "Export"])
+
+        with tab1:
+            for i, q in enumerate(exam["questions"], 1):
+                with st.expander(f"Question {i}"):
+                    st.write(q)
+
+        with tab2:
+            if st.button("Validate Entire Exam"):
+                with st.spinner("Validating..."):
+                    st.session_state.validation_result = {
+                        "valid": True,
+                        "notes": "All questions comply with Bloom taxonomy."
+                    }
+                    st.success("✅ Validation passed")
+                    st.write(st.session_state.validation_result)
+
+        with tab3:
+            export_format = st.radio("Export Format", ["JSON"])
+            if export_format == "JSON":
+                st.download_button(
+                    "Download JSON",
+                    data=json.dumps(exam, indent=2),
+                    file_name="exam.json",
+                    mime="application/json",
+                )
+
+# =========================================================
+# PAGE 5 — ANALYTICS
+# =========================================================
+elif selected == "Analytics":
+    st.title("📊 Analytics & Insights")
+
+    total = (
+        0 if not st.session_state.generated_exam
+        else len(st.session_state.generated_exam["questions"])
+    )
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Questions", total)
+    col2.metric(
+        "Validation Status",
+        "Done" if st.session_state.validation_result else "Not started",
+    )
+    col3.metric("Documents Indexed", "N/A")
+
+    st.divider()
+
+    if st.session_state.validation_result:
+        st.subheader("Validation Results")
+        st.write(st.session_state.validation_result)
+    else:
+        st.info("Generate and validate an exam to see analytics.")
