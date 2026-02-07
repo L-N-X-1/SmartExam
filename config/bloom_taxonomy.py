@@ -1,0 +1,1 @@
+#Définit les 6 niveaux de Bloom + liste exhaustive de verbes d'action pour chaque niveau (minimum 10 verbes par niveau). Utilisé par le Validator et les Agents.

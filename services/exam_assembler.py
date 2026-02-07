@@ -1,0 +1,1 @@
+#Assemble l'examen final : sélectionne les meilleures questions pour respecter % Bloom, difficulté, types → retourne un objet Exam.
