@@ -1,11 +1,9 @@
-# agents/coordinator_agent.py
-"""
-Coordonne tous les agents Bloom selon la distribution demandée
-"""
-
+from agents.evaluate_agent import EvaluateAgent
 from agents.remember_agent import RememberAgent
 from agents.understand_agent import UnderstandAgent
 from agents.apply_agent import ApplyAgent
+from agents.analyze_agent import AnalyzeAgent
+from agents.create_agent import CreateAgent
 
 class CoordinatorAgent:
     """
@@ -17,20 +15,14 @@ class CoordinatorAgent:
             1: RememberAgent(),
             2: UnderstandAgent(),
             3: ApplyAgent(),
-            # TODO: Ajouter agents 4, 5, 6
+            4: AnalyzeAgent(),     # niveau 4
+            5: EvaluateAgent(),    # niveau 5
+            6: CreateAgent()       # niveau 6
         }
     
     def generate_exam_questions(self, course_name, distribution, topic=None):
         """
         Génère toutes les questions selon la distribution Bloom
-        
-        INPUT:
-            - course_name (str) : nom du cours
-            - distribution (dict) : {1: 10, 2: 15, 3: 20, ...} nombre de questions par niveau
-            - topic (str) : sujet optionnel
-        
-        OUTPUT:
-            - all_questions (list) : toutes les questions générées
         """
         print("\n" + "="*70)
         print("🤖 COORDINATOR : Génération des questions")

@@ -4,7 +4,7 @@ __pycache__/
 venv/ 
 env/ 
 .env 
- 
+venv_cpu/ 
 # Node 
 node_modules/ 
 .next/ 
