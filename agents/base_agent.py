@@ -141,6 +141,9 @@ Format:
         """
         Direct LLM call using LangChain invoke pattern.
         """
+        if self.debug:
+            print(f"[{self.name}] Calling LLM with prompt length: {len(prompt)}")
+        
         try:
             # Try LangChain invoke pattern first
             if hasattr(self.llm, 'invoke'):
@@ -148,15 +151,23 @@ Format:
                     SystemMessage(content="You are an exam question generator."),
                     HumanMessage(content=prompt)
                 ]
+                if self.debug:
+                    print(f"[{self.name}] Using invoke pattern...")
                 response = self.llm.invoke(messages)
                 
                 # Handle different response formats
                 if hasattr(response, 'content'):
-                    return response.content
+                    result = response.content
                 elif isinstance(response, str):
-                    return response
+                    result = response
                 else:
-                    return str(response)
+                    result = str(response)
+                
+                if self.debug:
+                    print(f"[{self.name}] LLM response length: {len(result)}")
+                    print(f"[{self.name}] LLM response preview: {result[:200]}...")
+                
+                return result
             
             # Fallback to simple callable
             elif callable(self.llm):
@@ -173,6 +184,8 @@ Format:
                 raise RuntimeError(f"LLM object {type(self.llm)} is not callable and has no invoke/generate method")
                 
         except Exception as e:
+            if self.debug:
+                print(f"[{self.name}] LLM call FAILED: {str(e)}")
             raise RuntimeError(f"LLM call failed: {str(e)}")
 
     # -------------------------
@@ -239,16 +252,30 @@ Format:
 
     def _uses_allowed_verb(self, question: str) -> bool:
         """
-        Check if question starts with an allowed verb.
-        Uses word boundary to avoid partial matches.
+        Check if question contains an allowed verb OR starts with a common question word.
+        More forgiving to improve success rate while still filtering garbage.
         """
         q = question.lower().strip()
-        return any(q.startswith(v.lower() + " ") for v in self.allowed_verbs)
+        
+        # Allow common question starters (these are valid exam question formats)
+        question_starters = ["what", "how", "why", "when", "which", "where", "who", "can you", "could you"]
+        if any(q.startswith(starter) for starter in question_starters):
+            return True
+        
+        # Check first 50 chars for any allowed verb as a whole word
+        search_region = q[:50]
+        for v in self.allowed_verbs:
+            # Use word boundary to match whole words only
+            pattern = r'\b' + re.escape(v.lower()) + r'\b'
+            if re.search(pattern, search_region):
+                return True
+        return False
 
     def _valid_schema(self, item: Dict) -> bool:
+        # Only require "question" key exists (allow additional keys like answer, difficulty, etc.)
         return (
             isinstance(item, dict)
-            and set(item.keys()) == {"question"}
+            and "question" in item  # Changed from exact key match
             and isinstance(item["question"], str)
             and len(item["question"].strip()) > 10
         )
@@ -256,22 +283,37 @@ Format:
     def _clean_questions(self, questions: List[Dict]) -> List[Dict]:
         cleaned = []
         seen = set()
+        
+        # Debug counters
+        schema_failed = 0
+        verb_failed = 0
+        duplicate_count = 0
 
         for q in questions:
             if not self._valid_schema(q):
+                schema_failed += 1
+                if self.debug:
+                    print(f"[{self.name}] Schema failed for: {q}")
                 continue
 
             text = q["question"].strip()
 
             if not self._uses_allowed_verb(text):
+                verb_failed += 1
+                if self.debug:
+                    print(f"[{self.name}] Verb check failed for: {text[:50]}...")
                 continue
 
             key = text.lower()
             if key in seen:
+                duplicate_count += 1
                 continue
 
             seen.add(key)
             cleaned.append({"question": text})
+        
+        if self.debug:
+            print(f"[{self.name}] Clean stats: {len(questions)} raw -> {len(cleaned)} clean (schema_fail={schema_failed}, verb_fail={verb_failed}, dups={duplicate_count})")
 
         return cleaned
 

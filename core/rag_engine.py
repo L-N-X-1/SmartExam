@@ -162,7 +162,49 @@ class RAGEngine:
 
         self._persist(texts)
 
+    def append_to_index(self, new_chunks: list[dict]) -> int:
+        """
+        Append new chunks to the existing index without replacing.
+        Returns the number of new chunks added.
+        """
+        # Load existing index if not loaded
+        if self.index is None:
+            loaded = self.load_index()
+            if not loaded:
+                # No existing index, create new one
+                self.create_index(new_chunks)
+                return len(new_chunks)
+        
+        # If embeddings weren't loaded (they're not persisted separately),
+        # we need to reconstruct them from existing chunks
+        if self.embeddings is None or len(self.embeddings) == 0 or \
+           (hasattr(self.embeddings, 'shape') and self.embeddings.shape[0] != len(self.chunks)):
+            # Re-embed existing chunks
+            existing_texts = [c["text"] for c in self.chunks]
+            self.embeddings = self.embed(existing_texts)
+        
+        # Embed new chunks
+        new_texts = [c["text"] for c in new_chunks]
+        new_embeddings = self.embed(new_texts)
+        
+        # Combine with existing
+        self.chunks.extend(new_chunks)
+        self.embeddings = np.vstack([self.embeddings, new_embeddings])
+        
+        # Rebuild index with all embeddings
+        dim = self.embeddings.shape[1]
+        self.index = faiss.IndexFlatIP(dim)
+        self.index.add(self.embeddings)
+        
+        # Persist updated index
+        all_texts = [c["text"] for c in self.chunks]
+        self._persist(all_texts)
+        
+        return len(new_chunks)
+
     def _persist(self, texts):
+        # Ensure directory exists before writing
+        os.makedirs(self.path, exist_ok=True)
         faiss.write_index(self.index, f"{self.path}/faiss.index")
 
         with open(f"{self.path}/chunks.pkl", "wb") as f:
@@ -316,6 +358,9 @@ def process_pdf_to_chunks(*args, **kwargs):
 
 def create_index(chunks):
     return get_engine().create_index(chunks)
+
+def append_to_index(chunks):
+    return get_engine().append_to_index(chunks)
 
 def retrieve(query, k=5):
     return get_engine().retrieve(query, k=k)
