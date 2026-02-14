@@ -27,14 +27,11 @@ SmartExam is a Streamlit-based web application that allows educators to generate
 
 Check out the **Demo** of the SmartExam app below 👇
 
-<video width="600" controls>
-  <source src="demo/Demo.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+[Download & Watch Demo](demo/Demo.mp4)
 
 
 # 📂 Project Structure: Most important
-
+````
 SmartExam/
 ├─ agents/                # LLM agents for different Bloom levels
 │  ├─ coordinator_agent.py
@@ -54,7 +51,7 @@ SmartExam/
 |     ├─ settings.py
 ├─ requirements.txt       # Python dependencies
 └─ README.md
-
+````
 
 # 🖥 Prerequisites
 
@@ -109,33 +106,34 @@ You can then edit .env to add your API keys or configuration values without chan
 
 ## How to Fill It
 
-HF_TOKEN – Go to HuggingFace
+**HF_TOKEN** = Go to HuggingFace
  and generate a free token, then paste it here.
 
-LLM_PROVIDER – Choose which backend you want to use:
+**LLM_PROVIDER** = Choose which backend you want to use:
 
-local → run a local model like Ollama or LLaMA.
+- local → run a local model like Ollama or LLaMA.
 
-huggingface → uses HuggingFace hosted models.
+- huggingface → uses HuggingFace hosted models.
 
-groq → uses Groq API.
+- groq → uses Groq API.
 
-openrouter → uses OpenRouter API.
+- openrouter → uses OpenRouter API.
 
-LLM_MODEL – Select the model for question generation. If unsure, use the default LLaMA 3.1 model.
+**LLM_MODEL** = Select the model for question generation. If unsure, use the default LLaMA 3.1 model.
 
-EMBEDDING_MODEL – Pick an open-source embedding model. This is used for semantic search in the RAG engine.
+**EMBEDDING_MODEL** = Pick an open-source embedding model. This is used for semantic search in the RAG engine.
 
-API keys – Fill only the keys relevant to your provider.
+**API keys** = Fill only the keys relevant to your provider.
 
-LOCAL_LLM_MODEL – Required if LLM_PROVIDER=local.
+**LOCAL_LLM_MODEL** = Required if LLM_PROVIDER=local.
 
-Chunking parameters (CHUNK_SIZE, CHUNK_OVERLAP) – Controls how documents are split for retrieval. Defaults are safe.
+**Chunking parameters (CHUNK_SIZE, CHUNK_OVERLAP)** = Controls how documents are split for retrieval. Defaults are safe.
 
-MAX_QUESTIONS_PER_LEVEL – Limits the number of questions generated per Bloom level to prevent excessive generation.
+**MAX_QUESTIONS_PER_LEVEL** = Limits the number of questions generated per Bloom level to prevent excessive generation.
 
 
 5. Run the app:
+    
 Once .env is correctly filled, your Streamlit app will read the settings automatically, and you can run the project with:
 `streamlit run app.py`
 
