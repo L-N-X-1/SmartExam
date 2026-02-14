@@ -27,7 +27,7 @@ SmartExam is a Streamlit-based web application that allows educators to generate
 
 Check out the **Demo** of the SmartExam app in the demo/ folder 👇
 
-<img src="demo/demo.gif" alt="Demo" width="480"/>
+![SmartExam Demo](demo/demo.gif)
 
 
 # 📂 Project Structure: Most important
