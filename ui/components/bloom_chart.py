@@ -1,1 +1,0 @@
-#Interface Streamlit – Page/Component Bloom Chart – Responsable UI/UX

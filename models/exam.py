@@ -1,1 +1,0 @@
-#Modèle Pydantic Exam : titre, durée, liste de questions, distribution Bloom réelle + méthode export_to_pdf().

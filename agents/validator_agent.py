@@ -1,158 +1,133 @@
-import re
+# agents/validator_agent.py
+
+"""
+ValidatorAgent
+
+Validates generated questions using:
+- Heuristic scoring (clarity, specificity, cognitive level alignment)
+- Optional LLM-based judgment
+
+Designed for LangGraph + dependency injection architecture.
+"""
+
 import json
-from typing import Tuple, Dict, Any, List
-from langchain_core.messages import HumanMessage, SystemMessage
+from typing import Dict, Tuple, Any, Optional
 from langchain_core.runnables import RunnableLambda
+from core.llm_interface import LLMClient
 
 
 class ValidatorAgent:
     """
-    Validates generated questions using:
-    - heuristic checks
-    - Bloom verb alignment
-    - ambiguity detection
-    - LLM scoring judge
-    
-    Now uses LangGraph directly without core/llm_interface
+    Validates a generated question and returns:
+        - validation_passed: bool
+        - validation_score: int
+        - validation_details: dict
     """
 
     def __init__(
         self,
-        llm: Any,  # LangChain LLM or LangGraph compatible model
-        threshold: int = 85,
-        use_llm_judge: bool = True
+        llm: Any = None,
+        threshold: int = 70,
+        use_llm_judge: bool = True,
+        verbose: bool = False,
     ):
-        self.llm = llm
+        self.llm = llm or LLMClient()
         self.threshold = threshold
         self.use_llm_judge = use_llm_judge
+        self.verbose = verbose
 
-        self.bloom_verbs = {
-            "remember": ["define","list","name","identify","recall","state"],
-            "understand": ["explain","describe","summarize","interpret","outline"],
-            "apply": ["solve","use","compute","implement","demonstrate"],
-            "analyze": ["compare","contrast","differentiate","classify","analyze"],
-            "evaluate": ["justify","critique","defend","assess","evaluate"],
-            "create": ["design","propose","create","develop","construct"]
-        }
-        
-        # Create LangGraph node
+        # LangGraph node wrapper
         self.node = RunnableLambda(self._process_state)
 
-    # ---------------------------------
-    # Heuristic checks (unchanged)
-    # ---------------------------------
+    # -------------------------
+    # Public validation API
+    # -------------------------
+    def validate(
+        self,
+        question: str,
+        context: str,
+        bloom_level: str,
+        threshold: Optional[int] = None,
+    ) -> Tuple[bool, Dict[str, Any]]:
+        effective_threshold = threshold if threshold is not None else self.threshold
 
-    def _clarity_score(self, q: str) -> int:
-        score = 100
+        # 1️⃣ Heuristic scoring
+        heuristic_score, heuristic_meta = self._heuristic_score(question, context, bloom_level)
+        final_score = heuristic_score
+        llm_meta = {}
 
-        if len(q) < 12:
-            score -= 40
+        # 2️⃣ Optional LLM scoring
+        if self.use_llm_judge and self.llm:
+            try:
+                llm_score, llm_meta = self._llm_judge(question, context, bloom_level)
+                final_score = int((heuristic_score + llm_score) / 2)
+            except Exception as e:
+                if self.verbose:
+                    print(f"[Validator] LLM judge failed: {e}")
+                llm_meta = {"score": 50, "reasoning": "LLM judge failed"}
 
-        if "??" in q:
-            score -= 20
+        meta = {
+            "heuristic_score": heuristic_score,
+            "llm_score": llm_meta.get("score"),
+            "final_score": final_score,
+            "details": {**heuristic_meta, **llm_meta},
+        }
 
-        if q.count("?") != 1:
-            score -= 20
+        return final_score >= effective_threshold, meta
 
-        if len(q.split()) < 5:
-            score -= 20
+    # -------------------------
+    # Heuristic scoring
+    # -------------------------
+    def _heuristic_score(self, question: str, context: str, bloom_level: str) -> Tuple[int, Dict[str, Any]]:
+        words = question.split()
+        score = 0
+        details = {}
 
-        return max(score, 0)
+        # Clarity
+        if 8 <= len(words) <= 40:
+            score += 30
+            details["clarity"] = 30
+        else:
+            details["clarity"] = 10
 
-    def _single_task_score(self, q: str) -> int:
-        multi_markers = [
-            " and ", " or ", ", and ", ", then ",
-            "also", "plus"
-        ]
+        # Context relevance
+        context_words = set(context.lower().split())
+        overlap = len(set(word.lower() for word in words) & context_words)
+        if overlap > 3:
+            score += 30
+            details["relevance"] = 30
+        else:
+            details["relevance"] = 15
 
-        count = sum(q.lower().count(m) for m in multi_markers)
+        # Bloom alignment
+        bloom_keywords = {
+            "remember": ["define", "list", "identify"],
+            "understand": ["explain", "describe", "summarize"],
+            "apply": ["use", "apply", "demonstrate"],
+            "analyze": ["analyze", "compare", "contrast"],
+            "evaluate": ["evaluate", "justify", "argue"],
+            "create": ["design", "create", "propose"],
+        }
+        keywords = bloom_keywords.get(bloom_level.lower(), [])
+        if any(word in question.lower() for word in keywords):
+            score += 40
+            details["bloom_alignment"] = 40
+        else:
+            details["bloom_alignment"] = 20
 
-        if count >= 2:
-            return 40
-        if count == 1:
-            return 70
-        return 100
+        return score, details
 
-    def _bloom_verb_score(self, q: str, bloom_level: str) -> int:
-        verbs = self.bloom_verbs.get(bloom_level.lower(), [])
-        ql = q.lower()
-
-        for v in verbs:
-            if ql.startswith(v + " "):
-                return 100
-            if f" {v} " in ql:
-                return 85
-
-        return 40
-
-    def _context_overlap_score(self, q: str, context: str) -> int:
-        """
-        crude grounding check via keyword overlap
-        """
-        q_words = set(re.findall(r"\w+", q.lower()))
-        ctx_words = set(re.findall(r"\w+", context.lower()))
-
-        if not ctx_words:
-            return 0
-
-        overlap = len(q_words & ctx_words) / max(len(q_words), 1)
-
-        if overlap > 0.6:
-            return 100
-        if overlap > 0.4:
-            return 80
-        if overlap > 0.25:
-            return 60
-        return 30
-
-    # ---------------------------------
-    # LLM Judge with direct LangChain integration
-    # ---------------------------------
-
-    def _call_llm(self, prompt: str) -> str:
-        """
-        Direct LLM call using LangChain invoke pattern.
-        """
-        try:
-            # Try LangChain invoke pattern first
-            if hasattr(self.llm, 'invoke'):
-                messages = [
-                    SystemMessage(content="You are an exam quality judge. Return only valid JSON."),
-                    HumanMessage(content=prompt)
-                ]
-                response = self.llm.invoke(messages)
-                
-                # Handle different response formats
-                if hasattr(response, 'content'):
-                    return response.content
-                elif isinstance(response, str):
-                    return response
-                else:
-                    return str(response)
-            
-            # Fallback to simple callable
-            elif callable(self.llm):
-                return self.llm(prompt, temperature=0)
-            
-            # Fallback to generate method (legacy)
-            elif hasattr(self.llm, 'generate'):
-                result = self.llm.generate(prompt=prompt, temperature=0)
-                if hasattr(result, 'text'):
-                    return result.text
-                return str(result)
-            
-            else:
-                raise RuntimeError(f"LLM object {type(self.llm)} is not callable and has no invoke/generate method")
-                
-        except Exception as e:
-            raise RuntimeError(f"LLM call failed: {str(e)}")
-
-    def _llm_score(self, question: str, context: str, bloom_level: str) -> Dict[str, int]:
+    # -------------------------
+    # Optional LLM scoring
+    # -------------------------
+    def _llm_judge(self, question: str, context: str, bloom_level: str) -> Tuple[int, Dict[str, Any]]:
+        if not self.llm:
+            return 50, {"score": 50, "reasoning": "No LLM configured"}
 
         prompt = f"""
-You are an exam quality judge.
+Evaluate this question as an expert educator.
 
-Bloom target: {bloom_level}
+Bloom Level: {bloom_level}
 
 Context:
 {context}
@@ -160,163 +135,44 @@ Context:
 Question:
 {question}
 
-Score 0-100:
-
-- clarity
-- bloom_alignment
-- context_grounded
-- single_task
-
-Return ONLY JSON:
-{{
- "clarity": int,
- "bloom_alignment": int,
- "context_grounded": int,
- "single_task": int
-}}
+Return ONLY valid JSON: {{"score": integer 0-100, "reasoning": "short explanation"}}
 """
-
-        raw = self._call_llm(prompt)
-
         try:
-            return json.loads(raw)
+            # Use unified LLMClient generate interface
+            response_text = self.llm.generate([{"role": "user", "content": prompt}], max_tokens=100, temperature=0.1)
+            parsed = json.loads(response_text)
+            score = int(parsed.get("score", 50))
+            return score, parsed
         except Exception:
+            return 50, {"score": 50, "reasoning": "LLM response parsing failed"}
+
+    # -------------------------
+    # LangGraph state processor
+    # -------------------------
+    def _process_state(self, state: Dict) -> Dict:
+        question_text = state.get("generated_question")
+        context = state.get("retrieved_context", "")
+        bloom_level = state.get("bloom_level", "understand")
+        threshold = state.get("validation_threshold", self.threshold)
+
+        if not question_text:
             return {
-                "clarity": 50,
-                "bloom_alignment": 50,
-                "context_grounded": 50,
-                "single_task": 50
+                **state,
+                "validation_passed": False,
+                "validation_score": 0,
+                "validation_details": {"error": "No question provided"},
             }
 
-    # ---------------------------------
-    # Final public API (unchanged)
-    # ---------------------------------
-
-    def validate(
-        self,
-        question: str,
-        context: str,
-        bloom_level: str
-    ) -> Tuple[bool, Dict[str, Any]]:
-
-        # heuristic layer
-        h_clarity = self._clarity_score(question)
-        h_task = self._single_task_score(question)
-        h_bloom = self._bloom_verb_score(question, bloom_level)
-        h_ground = self._context_overlap_score(question, context)
-
-        heuristic_avg = int(
-            (h_clarity + h_task + h_bloom + h_ground) / 4
-        )
-
-        # optional LLM judge
-        if self.use_llm_judge:
-            llm_scores = self._llm_score(
-                question,
-                context[:4000],
-                bloom_level
-            )
-
-            llm_avg = int(sum(llm_scores.values()) / 4)
-
-            final_score = int(
-                heuristic_avg * 0.4 +
-                llm_avg * 0.6
-            )
-        else:
-            llm_scores = None
-            final_score = heuristic_avg
-
-        meta = {
-            "heuristic": {
-                "clarity": h_clarity,
-                "single_task": h_task,
-                "bloom_alignment": h_bloom,
-                "context_grounded": h_ground
-            },
-            "llm": llm_scores,
-            "final_score": final_score
-        }
-
-        return final_score >= self.threshold, meta
-
-    # ---------------------------------
-    # LangGraph Integration
-    # ---------------------------------
-
-    def _process_state(self, state: Dict) -> Dict:
-        """
-        Process LangGraph state for validation.
-        Expected input state:
-        {
-            "questions": [{"question": "...", "bloom_level": "..."}],
-            "context": "...",
-            "validation_threshold": int (optional)
-        }
-        
-        Output state adds:
-        {
-            "validated_questions": [...],
-            "validation_results": [...],
-            "validation_stats": {...}
-        }
-        """
-        questions = state.get("questions", [])
-        context = state.get("context", "")
-        threshold = state.get("validation_threshold", self.threshold)
-        
-        validated_questions = []
-        validation_results = []
-        stats = {"total": len(questions), "passed": 0, "failed": 0}
-        
-        for q in questions:
-            if isinstance(q, dict) and "question" in q:
-                question_text = q["question"]
-                bloom_level = q.get("bloom_level", "remember")
-                
-                is_valid, meta = self.validate(question_text, context, bloom_level)
-                
-                if is_valid:
-                    validated_questions.append({
-                        **q,
-                        "validation": meta
-                    })
-                    stats["passed"] += 1
-                else:
-                    stats["failed"] += 1
-                
-                validation_results.append({
-                    "question": question_text,
-                    "is_valid": is_valid,
-                    "meta": meta
-                })
-        
+        is_valid, meta = self.validate(question_text, context, bloom_level, threshold)
         return {
             **state,
-            "validated_questions": validated_questions,
-            "validation_results": validation_results,
-            "validation_stats": stats
+            "validation_passed": is_valid,
+            "validation_score": meta["final_score"],
+            "validation_details": meta,
         }
 
+    # -------------------------
+    # Callable (LangGraph)
+    # -------------------------
     def __call__(self, state: Dict) -> Dict:
-        """
-        Make validator LangGraph-native callable.
-        """
         return self.node.invoke(state)
-
-    def validate_batch(
-        self,
-        questions: List[Dict],
-        context: str,
-        bloom_level: str
-    ) -> List[Dict]:
-        """
-        Validate a batch of questions (legacy compatibility).
-        """
-        state = {
-            "questions": questions,
-            "context": context
-        }
-        
-        result = self._process_state(state)
-        return result["validated_questions"]

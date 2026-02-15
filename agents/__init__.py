@@ -1,4 +1,4 @@
-from .base_agent import BaseAgent
+from .base_agent import BaseBloomAgent
 from .remember_agent import RememberAgent
 from .understand_agent import UnderstandAgent
 from .apply_agent import ApplyAgent

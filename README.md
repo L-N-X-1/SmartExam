@@ -1,87 +1,155 @@
-# smart_exam 
-Projet de generation intelligente d'examens basse sur la taxonomie de Bloom et RAG 
+# 📝 SmartExam — AI-Powered Exam Generator
+
+SmartExam is a Streamlit-based web application that allows educators to generate, review, and export educational questions using an AI-powered RAG (Retrieval-Augmented Generation) engine and LLM agents. Questions are generated according to Bloom’s taxonomy and can be exported in JSON or PDF formats.
  
-# 🎓 SMART EXAM – Répartition des Tâches pour les Étudiants
 
-Projet de fin d'année : **Générateur intelligent d'examens basé sur la Taxonomie de Bloom + Multi-Agent + RAG**
+# ⚡ Features
 
-> Objectif : Créer une application Streamlit complète qui permet à un enseignant d'uploader ses cours (PDF, etc.) → génère automatiquement un examen équilibré sur les 6 niveaux de Bloom → export PDF + analytics.
-Salut l’équipe SMART EXAM 🧠
+1. Upload & Index Documents – Use the Upload page to index educational content (PDF, TXT, DOCX).
 
-Le repo est enfin propre → https://github.com/chahedjouini/SmartExam (branche main)
+2. Configure Exam – Set the course title, number of questions, duration, and difficulty distribution.
 
-Étapes OBLIGATOIRES pour tout le monde :
-1. git clone https://github.com/chahedjouini/SmartExam.git
-2. cd SmartExam
-3. python -m venv venv && venv\Scripts\activate
-4. pip install -r requirements.txt
-5. cp .env.example .env → mettez votre clé OpenAI
-6. streamlit run app.py → ça doit marcher direct !
+3. Generate Questions – Automatically generate questions by Bloom level:
 
-J’ai mis des commentaires détaillés dans chaque fichier pour que vous sachiez exactement quoi coder.
+   - Easy → Remember
 
-Cette semaine on vise :
-- Upload PDF qui marche
-- 6 agents qui génèrent des questions (même simples)
-- Interface avec les 5 pages
+   - Medium → Apply
 
-On se fait un point Zoom mercredi soir 20h ?
+   - Hard → Evaluate
 
-Qui veut quel groupe ? Dites-moi vite !
-### Répartition conseillée (6-8 étudiants) :
-- Groupe 1 → Upload + RAG (2 personnes)  
-- Groupe 2 → Agents Bloom (3 personnes)  
-- Groupe 3 → Validation + Exam Assembler (1-2 personnes)  
-- Groupe 4 → Interface Streamlit + UI Components (2 personnes)
+4. Preview & Review – Review generated questions with text, type, points, and difficulty.
 
----
+5. Export – Download questions in JSON or PDF formats.
 
-### Structure du projet & Tâches par fichier
+6. Analytics – Visualize the distribution of questions by Bloom level and difficulty.
 
-| Dossier / Fichier                        | Responsable(s)          | Tâche précise à réaliser (À FAIRE OBLIGATOIREMENT)                                                                                                       |
-|------------------------------------------|-------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **app.py**                               | Toute l'équipe          | Point d’entrée Streamlit. Créer un `st.set_page_config()` + `st.sidebar` + menu multi-page (Upload → Configurer → Générer → Voir l’examen). Utiliser `streamlit_option_menu` ou `st.page_link`. |
-| **config/settings.py**                   | Groupe 1                 | Charger les variables d’environnement (.env) avec `python-dotenv`. Exposer : `OPENAI_API_KEY`, `LLM_MODEL = "gpt-4o"`, `EMBEDDING_MODEL`, etc.            |
-| **config/bloom_taxonomy.py**             | Groupe 2                 | Définir un dictionnaire ou une classe avec les 6 niveaux + liste complète de verbes d’action par niveau (au moins 10 verbes par niveau).               |
-| **core/llm_interface.py**                | Groupe 1                 | Wrapper unique pour appeler OpenAI / Anthropic / Grok. Fonctions : `get_completion(prompt, temperature=0.7)` et `get_embedding(text)`.               |
-| **core/embeddings.py**                   | Groupe 1                 | Gestion du vector store (FAISS ou Chroma). Fonctions : `create_index(documents)`, `retrieve(query, k=5)`.                                              |
-| **core/rag_engine.py**                   | Groupe 1                 | Pipeline complet : charger PDF/DOCX → chunking (500-1000 tokens) → embed → sauvegarde dans `data/vector_store/`.                                      |
-| **agents/base_agent.py**                 | Groupe 2                 | Classe abstraite avec méthode `generate_questions(context, num=5)` que tous les agents héritent.                                                        |
-| **agents/remember_agent.py**             | Étudiant 1 (Groupe 2)   | Spécialisé niveau 1. Prompt qui force des verbes comme List, Define, Recall, Name... Générer 10-15 questions par appel.                               |
-| **agents/understand_agent.py**           | Étudiant 1 (Groupe 2)   | Niveau 2 : Explain, Summarize, Describe, Interpret...                                                                                                   |
-| **agents/apply_agent.py**                | Étudiant 2 (Groupe 2)   | Niveau 3 : Solve, Use, Implement, Demonstrate... Inclure des petits exercices pratiques ou calculs.                                                  |
-| **agents/analyze_agent.py**              | Étudiant 2 (Groupe 2)   | Niveau 4 : Compare, Contrast, Differentiate, Classify...                                                                                               |
-| **agents/evaluate_agent.py**             | Étudiant 3 (Groupe 2)   | Niveau 5 : Justify, Critique, Assess, Defend...                                                                                                         |
-| **agents/create_agent.py**               | Étudiant 3 (Groupe 2)   | Niveau 6 : Design, Invent, Propose, Create a new... Les questions les plus ouvertes et créatives.                                                      |
-| **agents/coordinator_agent.py**          | Groupe 2 (leader)       | Orchestre les 6 agents. Doit respecter la distribution Bloom demandée par l’enseignant (ex: 10% Remember, 20% Apply...).                              |
-| **agents/validator_agent.py**            | Groupe 3                 | **Cœur du projet** : Implémenter les heuristiques + appel LLM zero-shot pour scorer chaque question (clarté, bloom accuracy, etc.). Seuil ≥ 85%.      |
-| **models/question.py**                   | Groupe 3                 | Pydantic model `Question` avec champs : text, bloom_level (1-6), difficulty, type ("mcq"|"short"|"open"), marks, topic, validation_score, etc.        |
-| **models/exam.py**                       | Groupe 3                 | Pydantic model `Exam` contenant titre, durée, liste de questions, bloom_distribution réelle, etc. + méthode `export_to_pdf()` (avec WeasyPrint ou ReportLab). |
-| **services/document_processor.py**       | Groupe 1                 | Fonctions : `extract_text_from_pdf(path)`, `extract_text_from_docx(path)`. Utiliser PyPDF2 + python-docx.                                              |
-| **services/question_generator.py**       | Groupe 2                 | Facade qui appelle le Coordinator → récupère toutes les questions brutes → passe au Validator → retourne seulement les validées.                     |
-| **services/exam_assembler.py**           | Groupe 3                 | Prend les questions validées + config prof → sélectionne les meilleures pour respecter les % Bloom, difficulté, types → retourne un objet `Exam`.     |
-| **services/validator_service.py**        | Groupe 3                 | Contient la logique de scoring (heuristique verbes + prompt LLM) utilisée par `validator_agent.py`.                                                    |
-| **utils/bloom_heuristics.py**            | Groupe 3                 | Fonctions utilitaires : `detect_bloom_level_from_verb(verb)` → retourne 1-6, `check_consistency(question_text, claimed_level)`.                       |
-| **ui/pages/upload.py**                   | Groupe 4                 | Page Streamlit : drag & drop fichiers + bouton "Traiter les documents" → lance RAG → st.success + aperçu des topics extraits.                         |
-| **ui/pages/configure.py**                | Groupe 4                 | Formulaire : titre examen, durée, % par niveau Bloom (sliders), types de questions, difficulté → sauvegarde dans `st.session_state.exam_config`.       |
-| **ui/pages/review.py**                   | Groupe 4                 | Affiche toutes les questions générées avec carte (component question_card.py), possibilité de supprimer/modifier manuellement.                        |
-| **ui/pages/analytics.py**                | Groupe 4                 | Graphique camembert Bloom (Plotly) + radar chart difficulté + stats par topic.                                                                           |
-| **ui/components/question_card.py**       | Groupe 4                 | Component réutilisable : affiche une question avec son niveau Bloom (badge coloré), score validation, bouton supprimer.                                |
-| **ui/components/bloom_chart.py**         | Groupe 4                 | Component Plotly qui prend un dict {1: 10, 2: 15...} → camembert ou barres horizontales stylé.                                                         |
+# 🚀 How it works
 
-### Bonus (points supplémentaires)
-- Ajouter un bouton **"Regénérer les questions manquantes"** si l’assembler détecte un déficit sur un niveau.
-- Export PDF beau avec logo université + numérotation + bareme (WeasyPrint recommandé).
-- Sauvegarder les examens dans `exams/` avec date.
+Check out the **Demo** of the SmartExam app below 👇
 
-### Deadline & Livrables
-1. Chaque groupe push son code avec commits clairs (`git commit -m "feat: remember agent terminé"`)
-2. Le `main.py` doit tourner chez tout le monde → `streamlit run app.py`
-3. Présentation finale : démo complète (upload → config → génération → PDF)
+<video width="600" controls>
+  <source src="demo/Demo.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
 
-**Que le meilleur examen gagne !** 🚀
-**Architecture choisie** : Streamlit full-Python  
-**Raison** : Vitesse de développement ×10, équipe Python-only, deadline courte, maintenance simple.  
-On privilégie l’intelligence de l’IA plutôt que l’architecture micro-services.
 
-— Jouini Chahd, novembre 2025
+# 📂 Project Structure: Most important
+
+SmartExam/
+├─ agents/                # LLM agents for different Bloom levels
+│  ├─ coordinator_agent.py
+│  ├─ remember_agent.py
+│  ├─ apply_agent.py
+|  |      ....
+│  └─ evaluate_agent.py
+├─ core/                  # Core engine & LLM interface
+│  ├─ rag_engine.py
+│  └─ llm_interface.py    # insure using the project with different providers
+├─ ui/
+│  └─ pages/              # Streamlit pages
+│     ├─ upload.py
+│     ├─ generate.py
+│     └─ review.py
+├─ config.py              # Project settings
+|     ├─ settings.py
+├─ requirements.txt       # Python dependencies
+└─ README.md
+
+
+# 🖥 Prerequisites
+
+* Python 3.10+
+
+* Streamlit 1.30+ (or latest)
+
+* Local LLM or configured API key (HuggingFace, OpenRouter, or Ollama)
+
+* Basic knowledge of running Python projects
+
+# ⚙️ Installation
+
+1. Clone the repository
+
+`git clone https://github.com/yourusername/SmartExam.git`
+`cd SmartExam`
+
+2. Create a virtual environment 
+
+`python -m venv venv`
+`venv\Scripts\activate`
+
+3. Install dependencies
+
+`pip install --upgrade pip`
+`pip install -r requirements.txt`
+
+4. Configure API/LLM settings
+
+**Copy .env.example to .env:** The project comes with a reference file .env.example that contains all the environment variables you need. To use them:
+
+`cp .env.example .env`
+
+This will create a .env file based on .env.example.
+You can then edit .env to add your API keys or configuration values without changing the example file.
+
+| Variable                  | Description                                                               | Example / Notes          |
+| ------------------------- | ------------------------------------------------------------------------- | ------------------------ |
+| `HF_TOKEN`                | Your HuggingFace API token (free). Required if using HuggingFace models.  | `hf_xxx...`              |
+| `LLM_PROVIDER`            | The LLM provider to use: `local`, `huggingface`, `groq`, or `openrouter`. | `local`                  |
+| `LLM_MODEL`               | The LLM model for generating questions (e.g., LLaMA 3.1).                 | `llama3:8b`              |
+| `EMBEDDING_MODEL`         | Open-source embedding model used for retrieval in RAG.                    | `BAAI/bge-large-en-v1.5` |
+| `OPENAI_API_KEY`          | API key if using OpenAI (optional if not using).                          | `sk-xxx...`              |
+| `GROQ_API_KEY`            | API key for Groq (optional).                                              | `xxxx`                   |
+| `OPENROUTER_API_KEY`      | API key for OpenRouter (optional).                                        | `xxxx`                   |
+| `LOCAL_LLM_MODEL`         | Path or name of the local LLM model if using `local` provider.            | `llama3:8b`              |
+| `CHUNK_SIZE`              | Maximum size of text chunks for RAG indexing.                             | `1000`                   |
+| `CHUNK_OVERLAP`           | Number of overlapping tokens between chunks.                              | `100`                    |
+| `MAX_QUESTIONS_PER_LEVEL` | Maximum number of questions generated per Bloom level.                    | `5`                      |
+
+
+## How to Fill It
+
+HF_TOKEN – Go to HuggingFace
+ and generate a free token, then paste it here.
+
+LLM_PROVIDER – Choose which backend you want to use:
+
+local → run a local model like Ollama or LLaMA.
+
+huggingface → uses HuggingFace hosted models.
+
+groq → uses Groq API.
+
+openrouter → uses OpenRouter API.
+
+LLM_MODEL – Select the model for question generation. If unsure, use the default LLaMA 3.1 model.
+
+EMBEDDING_MODEL – Pick an open-source embedding model. This is used for semantic search in the RAG engine.
+
+API keys – Fill only the keys relevant to your provider.
+
+LOCAL_LLM_MODEL – Required if LLM_PROVIDER=local.
+
+Chunking parameters (CHUNK_SIZE, CHUNK_OVERLAP) – Controls how documents are split for retrieval. Defaults are safe.
+
+MAX_QUESTIONS_PER_LEVEL – Limits the number of questions generated per Bloom level to prevent excessive generation.
+
+
+5. Run the app:
+Once .env is correctly filled, your Streamlit app will read the settings automatically, and you can run the project with:
+`streamlit run app.py`
+
+## 👨‍💻 Project Maintainer & Contributors
+
+This project is managed by **Mohamed Rayen Ben Azouz** & **Rined Lazreg**.
+
+**🎉Shoutout for ex manager Chahed Jouini🎉**
+
+A special shoutout to the top developers who contributed and whose work was merged into this project:
+
+- **Tasnym Yousfi** 
+- **Hedil Yousfi** 
+- **Rined Lazreg** 
+- **Mohamed Rayen Ben Azouz** 
+
+Thank you all for your dedication, motivation and contributions! 🎉
